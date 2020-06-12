@@ -4,6 +4,7 @@
 int main()
 {
     taskpool *pObj = taskpoll_init();
+    printf("taskpool:%p\n", pObj);
 
     return 0;
 }
