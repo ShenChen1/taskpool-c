@@ -18,8 +18,8 @@ int main()
     int workers = WORKERS;
     int jobs = JOBS;
     int i, ret = 0;
-    int w_keys[WORKERS] = {};
-    int j_keys[JOBS] = {};
+    void *w_handles[WORKERS] = {};
+    void *j_handles[JOBS] = {};
 
     taskpool_t *pObj = taskpool_init();
     assert(pObj);
@@ -28,7 +28,7 @@ int main()
     {
         taskpool_worker_attr_t attr = {};
         attr.type = TASKPOOL_WORKER_TYPE_THREAD;
-        ret = pObj->add_worker(pObj, &attr, &w_keys[i]);
+        ret = pObj->add_worker(pObj, &attr, &w_handles[i]);
         assert(ret == 0);
     }
 
@@ -37,11 +37,11 @@ int main()
         taskpool_job_attr_t attr = {};
         attr.func = func;
         attr.arg = (int)i;
-        ret = pObj->add_job(pObj, &attr, &j_keys[i]);
+        ret = pObj->add_job(pObj, &attr, &j_handles[i]);
         assert(ret == 0);
     }
 
-    ret = pObj->wait_jobs(pObj, jobs, j_keys);
+    ret = pObj->wait_jobs(pObj, jobs, j_handles);
     assert(ret == 0);
 
     ret = pObj->deinit(pObj);

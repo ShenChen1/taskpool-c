@@ -21,6 +21,7 @@ typedef struct
 
     unsigned long cpu_mask;
     unsigned long sched_policy;
+    unsigned long sched_prio;
 
     int (*func)(void *);
     void *arg;
@@ -34,11 +35,11 @@ typedef struct taskpool
 
     int (*deinit)(struct taskpool *self);
 
-    int (*add_worker)(struct taskpool *self, taskpool_worker_attr_t *attr, int *key);
-    int (*del_workers)(struct taskpool *self, int num, int *keys);
+    int (*add_worker)(struct taskpool *self, const taskpool_worker_attr_t *attr, void **handle);
+    int (*del_workers)(struct taskpool *self, int num, void *handles);
 
-    int (*add_job)(struct taskpool *self, taskpool_job_attr_t *attr, int *key);
-    int (*wait_jobs)(struct taskpool *self, int num, int *keys);
+    int (*add_job)(struct taskpool *self, const taskpool_job_attr_t *attr, void **handle);
+    int (*wait_jobs)(struct taskpool *self, int num, void *handles);
 
 } taskpool_t;
 

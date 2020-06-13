@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(taskpool)
 
+add_compile_options(-g)
 include_directories("${PROJECT_SOURCE_DIR}/inc")
 
 add_library(${PROJECT_NAME}
