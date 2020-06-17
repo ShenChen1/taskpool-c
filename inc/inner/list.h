@@ -22,6 +22,13 @@ typedef struct list_head
 #define INIT_LIST_HEAD(ptr) \
     (ptr)->next = (ptr)->prev = (ptr)
 
+/* Test whether a list is empty.  */
+static inline int
+list_empty(const list_t *head)
+{
+	return head->next == head;
+}
+
 /* Add new element at the head of the list.  */
 static inline void
 list_add(list_t *newp, list_t *head)
@@ -30,6 +37,16 @@ list_add(list_t *newp, list_t *head)
     newp->prev = head;
     head->next->prev = newp;
     head->next = newp;
+}
+
+/* Add new element at the tail of the list.  */
+static inline void
+list_add_tail (list_t *newp, list_t *head)
+{
+    head->prev->next = newp;
+    newp->next = head;
+    newp->prev = head->prev;
+    head->prev = newp;
 }
 
 /* Remove element from list.  */
@@ -61,6 +78,13 @@ list_splice(list_t *add, list_t *head)
 /* Iterate forward over the elements of the list.  */
 #define list_for_each(pos, head) \
     for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/* Iterate forward over the elements list.  The list elements can be
+   removed from the list while doing this.  */
+#define list_for_each_safe(pos, p, head) \
+    for (pos = (head)->next, p = pos->next; \
+         pos != (head); \
+         pos = p, p = pos->next)
 
 /* Iterate forward over the elements of the list.  */
 #define list_for_each_prev(pos, head) \

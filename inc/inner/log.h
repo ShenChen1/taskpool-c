@@ -80,6 +80,6 @@ typedef enum
     } while (0)
 
 int log_setlevel(loglevel_t level);
-int log_print(loglevel_t level, const char *fmt, ...);
+int log_printf(loglevel_t level, const char *fmt, ...);
 
 #endif //_LOG_H_
