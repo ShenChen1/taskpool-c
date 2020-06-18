@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include "log.h"
 
-static loglevel_t s_level = LOG_LV_DEBUG;
+static loglevel_t s_level = LOG_LV_INFO;
 
 int log_setlevel(loglevel_t level)
 {

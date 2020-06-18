@@ -60,13 +60,13 @@ typedef enum
                    ##__VA_ARGS__);                     \
     } while (0)
 
-#define errorf(fmt, ...)                            \
-    do                                              \
-    {                                               \
-        log_printf(LOG_LV_ERROR,                    \
-                   LOG_CLR_RED "[" MODULE_NAME "] " \
-                               "ERROR : " fmt,      \
-                   ##__VA_ARGS__);                  \
+#define errorf(fmt, ...)                                             \
+    do                                                               \
+    {                                                                \
+        log_printf(LOG_LV_ERROR,                                     \
+                   LOG_CLR_RED "[" MODULE_NAME "] "                  \
+                               "ERROR (%s:%s|%d): " fmt,             \
+                   __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
     } while (0)
 
 #define fatalf(fmt, ...)                                             \
