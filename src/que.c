@@ -10,6 +10,7 @@
 typedef struct
 {
     list_t head;
+    unsigned long count;
     pthread_mutex_t lock;
     pthread_cond_t cond;
 } que_priv_t;
@@ -54,6 +55,7 @@ int que_create(void **handle)
     INIT_LIST_HEAD(&pPriv->head);
 
     *handle = pPriv;
+    tracef("handle:%p\n", *handle);
     return 0;
 
 err:
@@ -73,10 +75,21 @@ int que_delete(void *handle)
     que_node_t *pNode = NULL;
     list_t *p, *tmp;
 
+    if (pPriv == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+
+    tracef("handle:%p\n", handle);
+
     pthread_mutex_lock(&pPriv->lock);
     list_for_each_safe(p, tmp, &pPriv->head)
     {
         pNode = list_entry(p, que_node_t, list);
+        list_del(&pNode->list);
+        pPriv->count--;
+        tracef("pNode:%p\n", pNode);
         mem_free(pNode);
     }
     pthread_mutex_unlock(&pPriv->lock);
@@ -100,11 +113,13 @@ int que_put(void *handle, void *element)
         return -1;
     }
 
+    tracef("handle:%p, element:%p\n", pPriv, element);
     pNode = (que_node_t *)mem_alloc(sizeof(que_node_t));
     pNode->element = element;
 
     pthread_mutex_lock(&pPriv->lock);
     list_add_tail(&pNode->list, &pPriv->head);
+    pPriv->count++;
     pthread_mutex_unlock(&pPriv->lock);
 
     pthread_cond_signal(&pPriv->cond);
@@ -132,6 +147,7 @@ int que_get(void *handle, void **element, int isblock)
         {
             pNode = list_entry(pPriv->head.next, que_node_t, list);
             list_del(&pNode->list);
+            pPriv->count--;
             *element = pNode->element;
             mem_free(pNode);
             break;
@@ -157,5 +173,81 @@ int que_get(void *handle, void **element, int isblock)
 
     pthread_mutex_unlock(&pPriv->lock);
 
+    tracef("handle:%p, element:%p\n", pPriv, *element);
     return status;
+}
+
+int que_peek(void *handle, void **element)
+{
+    int status = -1;
+    que_priv_t *pPriv = (que_priv_t *)handle;
+    que_node_t *pNode = NULL;
+
+    if (pPriv == NULL || element == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+
+    pthread_mutex_lock(&pPriv->lock);
+    if (!list_empty(&pPriv->head))
+    {
+        pNode = list_entry(pPriv->head.next, que_node_t, list);
+        *element = pNode->element;
+        status = 0;
+    }
+    pthread_mutex_unlock(&pPriv->lock);
+
+    tracef("handle:%p, element:%p\n", pPriv, *element);
+    return status;
+}
+
+int que_remove(void *handle, void *element)
+{
+    int status = -1;
+    que_priv_t *pPriv = (que_priv_t *)handle;
+    que_node_t *pNode = NULL;
+    list_t *p, *tmp;
+
+    if (pPriv == NULL || element == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+
+    tracef("handle:%p, element:%p\n", pPriv, element);
+
+    pthread_mutex_lock(&pPriv->lock);
+    list_for_each_safe(p, tmp, &pPriv->head)
+    {
+        pNode = list_entry(p, que_node_t, list);
+        if (pNode->element == element)
+        {
+            list_del(&pNode->list);
+            pPriv->count--;
+            mem_free(pNode);
+            status = 0;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&pPriv->lock);
+
+    return status;
+}
+
+int que_len(void *handle)
+{
+    int ret;
+    que_priv_t *pPriv = (que_priv_t *)handle;
+    if (pPriv == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+
+    pthread_mutex_lock(&pPriv->lock);
+    ret = pPriv->count;
+    pthread_mutex_unlock(&pPriv->lock);
+
+    return ret;
 }
