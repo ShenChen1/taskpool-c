@@ -1,6 +1,7 @@
 #ifndef __TASKPOOL_H__
 #define __TASKPOOL_H__
 
+typedef void * handle_t;
 typedef enum
 {
     TASKPOOL_WORKER_TYPE_THREAD = 0,
@@ -47,10 +48,11 @@ typedef struct taskpool
     int (*add_worker)(struct taskpool *self, const taskpool_worker_attr_t *attr);
     int (*del_worker)(struct taskpool *self);
 
-    int (*add_job)(struct taskpool *self, const taskpool_job_attr_t *attr, void **handle);
-    int (*del_job)(struct taskpool *self, void *handle);
-    int (*wait_job_done)(struct taskpool *self, void *handle);
-    int (*get_job_status)(struct taskpool *self, void *handle, taskpool_job_status_e *status);
+    int (*add_job)(struct taskpool *self, const taskpool_job_attr_t *attr, handle_t *handle);
+    int (*del_job)(struct taskpool *self, handle_t handle);
+    int (*wait_job_done)(struct taskpool *self, handle_t handle);
+    int (*wait_all_jobs_done)(struct taskpool *self);
+    int (*get_job_status)(struct taskpool *self, handle_t handle, taskpool_job_status_e *status);
 
 } taskpool_t;
 

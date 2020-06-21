@@ -15,11 +15,11 @@ typedef struct
     unsigned long magic;
     pthread_mutex_t lock;
 
-    void *workers;
+    handle_t workers;
 
     unsigned long num_of_jobs;
-    void *jobs_todo;
-    void *jobs_done;
+    handle_t jobs_todo;
+    handle_t jobs_done;
 
     pthread_cond_t event;
 
@@ -61,6 +61,7 @@ static void *__do_task(void *arg)
     int status;
     taskpool_worker_t *worker = arg;
 
+    // set pthread running on detach mode
     pthread_detach(worker->task);
 
     status = que_put(worker->info->workers, worker);
@@ -70,8 +71,8 @@ static void *__do_task(void *arg)
     worker->keep_alive = 1;
     while (worker->keep_alive)
     {
-        status = que_get(worker->info->jobs_todo, (void **)&worker->job, 1);
-        if (status || worker->job == (void *)TASKPOOL_MAGIC)
+        status = que_get(worker->info->jobs_todo, (handle_t *)&worker->job, 1);
+        if (status || worker->job == (handle_t)TASKPOOL_MAGIC)
         {
             worker->keep_alive = 0;
             goto end;
@@ -128,7 +129,7 @@ static int taskpool_deinit(taskpool_t *self)
 
     while (que_len(pPriv->jobs_done))
     {
-        status = que_peek(pPriv->jobs_done, (void **)&job);
+        status = que_peek(pPriv->jobs_done, (handle_t *)&job);
         assert(!status);
         status = self->del_job(self, job);
         assert(!status);
@@ -202,7 +203,7 @@ static int taskpool_del_worker(taskpool_t *self)
     }
 
     pthread_mutex_lock(&pPriv->lock);
-    status = que_put_to_head(pPriv->jobs_todo, (void *)TASKPOOL_MAGIC);
+    status = que_put_to_head(pPriv->jobs_todo, (handle_t)TASKPOOL_MAGIC);
     assert(!status);
     pthread_cond_wait(&pPriv->event, &pPriv->lock);
     pthread_mutex_unlock(&pPriv->lock);
@@ -210,7 +211,7 @@ static int taskpool_del_worker(taskpool_t *self)
     return 0;
 }
 
-static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, void **handle)
+static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, handle_t *handle)
 {
     tracef("\n");
 
@@ -250,9 +251,9 @@ static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, v
     if (handle)
     {
         *handle = new;
+        tracef("%p\n", *handle);
     }
 
-    tracef("%p\n", *handle);
     return 0;
 
 err:
@@ -264,14 +265,14 @@ err:
     return -1;
 }
 
-static int taskpool_del_job(struct taskpool *self, void *handle)
+static int taskpool_del_job(struct taskpool *self, handle_t handle)
 {
     tracef("%p\n", handle);
 
     int status;
     taskpool_priv_t *pPriv = __get_priv(self);
     taskpool_job_t *job = handle;
-    void *que = NULL;
+    handle_t que = NULL;
 
     if (job == NULL)
     {
@@ -314,7 +315,7 @@ static int taskpool_del_job(struct taskpool *self, void *handle)
     return 0;
 }
 
-static int taskpool_get_job_status(taskpool_t *self, void *handle, taskpool_job_status_e *status)
+static int taskpool_get_job_status(taskpool_t *self, handle_t handle, taskpool_job_status_e *status)
 {
     tracef("%p\n", handle);
 
@@ -333,7 +334,7 @@ static int taskpool_get_job_status(taskpool_t *self, void *handle, taskpool_job_
     return 0;
 }
 
-static int taskpool_wait_job_done(taskpool_t *self, void *handle)
+static int taskpool_wait_job_done(taskpool_t *self, handle_t handle)
 {
     tracef("%p\n", handle);
 
@@ -354,6 +355,22 @@ static int taskpool_wait_job_done(taskpool_t *self, void *handle)
     pthread_mutex_unlock(&job->lock);
 
     tracef("%p done\n", handle);
+    return 0;
+}
+
+static int taskpool_wait_all_jobs_done(struct taskpool *self)
+{
+    tracef("\n");
+
+    taskpool_priv_t *pPriv = __get_priv(self);
+
+    pthread_mutex_lock(&pPriv->lock);
+    while (que_len(pPriv->jobs_todo))
+    {
+        pthread_cond_wait(&pPriv->event, &pPriv->lock);
+    }
+    pthread_mutex_unlock(&pPriv->lock);
+
     return 0;
 }
 
@@ -408,8 +425,8 @@ taskpool_t *taskpool_init()
     pObj->del_job = taskpool_del_job;
     pObj->get_job_status = taskpool_get_job_status;
     pObj->wait_job_done = taskpool_wait_job_done;
+    pObj->wait_all_jobs_done = taskpool_wait_all_jobs_done;
 
-    infof("Create taskpool:%p\n", pObj);
     return pObj;
 
 err:
@@ -420,9 +437,9 @@ err:
 
     if (pPriv)
     {
-        que_delete(&pPriv->workers);
-        que_delete(&pPriv->jobs_todo);
-        que_delete(&pPriv->jobs_done);
+        que_delete(pPriv->workers);
+        que_delete(pPriv->jobs_todo);
+        que_delete(pPriv->jobs_done);
         pthread_cond_destroy(&pPriv->event);
         pthread_mutex_destroy(&pPriv->lock);
         mem_free(pPriv);
