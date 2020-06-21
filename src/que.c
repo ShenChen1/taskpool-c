@@ -55,7 +55,6 @@ int que_create(void **handle)
     INIT_LIST_HEAD(&pPriv->head);
 
     *handle = pPriv;
-    tracef("handle:%p\n", *handle);
     return 0;
 
 err:
@@ -80,8 +79,6 @@ int que_delete(void *handle)
         errorf("paramter err\n");
         return -1;
     }
-
-    tracef("handle:%p\n", handle);
 
     pthread_mutex_lock(&pPriv->lock);
     list_for_each_safe(p, tmp, &pPriv->head)
@@ -113,12 +110,45 @@ int que_put(void *handle, void *element)
         return -1;
     }
 
-    tracef("handle:%p, element:%p\n", pPriv, element);
     pNode = (que_node_t *)mem_alloc(sizeof(que_node_t));
+    if (pNode == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
     pNode->element = element;
 
     pthread_mutex_lock(&pPriv->lock);
     list_add_tail(&pNode->list, &pPriv->head);
+    pPriv->count++;
+    pthread_mutex_unlock(&pPriv->lock);
+
+    pthread_cond_signal(&pPriv->cond);
+
+    return 0;
+}
+
+int que_put_to_head(void *handle, void *element)
+{
+    que_priv_t *pPriv = (que_priv_t *)handle;
+    que_node_t *pNode = NULL;
+
+    if (pPriv == NULL || element == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+
+    pNode = (que_node_t *)mem_alloc(sizeof(que_node_t));
+    if (pNode == NULL)
+    {
+        errorf("paramter err\n");
+        return -1;
+    }
+    pNode->element = element;
+
+    pthread_mutex_lock(&pPriv->lock);
+    list_add(&pNode->list, &pPriv->head);
     pPriv->count++;
     pthread_mutex_unlock(&pPriv->lock);
 
@@ -140,7 +170,6 @@ int que_get(void *handle, void **element, int isblock)
     }
 
     pthread_mutex_lock(&pPriv->lock);
-
     while (1)
     {
         if (!list_empty(&pPriv->head))
@@ -170,10 +199,8 @@ int que_get(void *handle, void **element, int isblock)
             }
         }
     }
-
     pthread_mutex_unlock(&pPriv->lock);
 
-    tracef("handle:%p, element:%p\n", pPriv, *element);
     return status;
 }
 
@@ -198,7 +225,6 @@ int que_peek(void *handle, void **element)
     }
     pthread_mutex_unlock(&pPriv->lock);
 
-    tracef("handle:%p, element:%p\n", pPriv, *element);
     return status;
 }
 
@@ -214,8 +240,6 @@ int que_remove(void *handle, void *element)
         errorf("paramter err\n");
         return -1;
     }
-
-    tracef("handle:%p, element:%p\n", pPriv, element);
 
     pthread_mutex_lock(&pPriv->lock);
     list_for_each_safe(p, tmp, &pPriv->head)

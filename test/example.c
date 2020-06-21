@@ -3,13 +3,13 @@
 #include <unistd.h>
 #include "taskpool.h"
 
-#define WORKERS (1)
-#define JOBS    (5)
+#define WORKERS (5)
+#define JOBS    (20)
 
 static int func(void *arg)
 {
     printf("task:%lu start\n", (unsigned long)arg);
-    sleep((unsigned long)arg);
+    sleep((unsigned long)arg%5);
     printf("task:%lu end\n", (unsigned long)arg);
     return 0;
 }
@@ -20,7 +20,6 @@ int main()
     int jobs = JOBS;
     unsigned long i;
     int ret = 0;
-    void *w_handles[WORKERS] = {};
     void *j_handles[JOBS] = {};
 
     taskpool_t *pObj = taskpool_init();
@@ -30,13 +29,14 @@ int main()
     {
         taskpool_worker_attr_t attr = {};
         attr.type = TASKPOOL_WORKER_TYPE_THREAD;
-        ret = pObj->add_worker(pObj, &attr, &w_handles[i]);
+        ret = pObj->add_worker(pObj, &attr);
         assert(ret == 0);
     }
 
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_attr_t attr = {};
+        attr.type = TASKPOOL_WORKER_TYPE_THREAD;
         attr.func = func;
         attr.arg = (void *)i;
         ret = pObj->add_job(pObj, &attr, &j_handles[i]);

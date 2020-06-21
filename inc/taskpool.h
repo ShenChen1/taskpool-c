@@ -44,8 +44,8 @@ typedef struct taskpool
 
     int (*deinit)(struct taskpool *self);
 
-    int (*add_worker)(struct taskpool *self, const taskpool_worker_attr_t *attr, void **handle);
-    int (*del_worker)(struct taskpool *self, void *handle);
+    int (*add_worker)(struct taskpool *self, const taskpool_worker_attr_t *attr);
+    int (*del_worker)(struct taskpool *self);
 
     int (*add_job)(struct taskpool *self, const taskpool_job_attr_t *attr, void **handle);
     int (*del_job)(struct taskpool *self, void *handle);
