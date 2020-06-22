@@ -4,13 +4,19 @@
 #include "taskpool.h"
 
 #define WORKERS (5)
-#define JOBS    (20)
+#define JOBS    (200)
 static void *j_handles[JOBS] = {};
+
+const char *status_str[] = {
+    "TODO",
+    "DOING",
+    "DONE",
+};
 
 static int func(void *arg)
 {
     printf("job[%p]: start\n", j_handles[(unsigned long)arg]);
-    sleep((unsigned long)arg%5);
+    sleep((unsigned long)arg % 5);
     printf("job[%p]: end\n", j_handles[(unsigned long)arg]);
     return 0;
 }
@@ -48,10 +54,10 @@ int main()
         taskpool_job_status_e status;
         ret = pObj->get_job_status(pObj, j_handles[i], &status);
         assert(ret == 0);
-        printf("job[%p]:%d\n", j_handles[i], status);
+        printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
-    for (i = 0; i < jobs/2; i++)
+    for (i = 0; i < jobs / 2; i++)
     {
         ret = pObj->wait_job_done(pObj, j_handles[i]);
         assert(ret == 0);
@@ -62,10 +68,10 @@ int main()
         taskpool_job_status_e status;
         ret = pObj->get_job_status(pObj, j_handles[i], &status);
         assert(ret == 0);
-        printf("job[%p]:%d\n", j_handles[i], status);
+        printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
-    for (i = jobs/2; i < jobs; i++)
+    for (i = jobs / 2; i < jobs; i++)
     {
         ret = pObj->wait_job_done(pObj, j_handles[i]);
         assert(ret == 0);
@@ -76,7 +82,7 @@ int main()
         taskpool_job_status_e status;
         ret = pObj->get_job_status(pObj, j_handles[i], &status);
         assert(ret == 0);
-        printf("job[%p]:%d\n", j_handles[i], status);
+        printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
     for (i = 0; i < jobs; i++)

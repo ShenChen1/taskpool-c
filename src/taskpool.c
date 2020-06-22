@@ -156,7 +156,7 @@ static int taskpool_add_worker(taskpool_t *self, const taskpool_worker_attr_t *a
 
     int status;
     taskpool_priv_t *pPriv = __get_priv(self);
-    taskpool_worker_t *new = malloc(sizeof(taskpool_worker_t));
+    taskpool_worker_t *new = mem_alloc(sizeof(taskpool_worker_t));
     if (new == NULL)
     {
         errorf("mem_alloc err\n");
@@ -195,7 +195,6 @@ static int taskpool_del_worker(taskpool_t *self)
     int status;
     taskpool_priv_t *pPriv = __get_priv(self);
 
-    tracef("%d\n", que_len(pPriv->workers));
     if (que_len(pPriv->workers) == 0)
     {
         errorf("no worker to delete\n");
@@ -221,7 +220,7 @@ static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, h
 
     int status;
     taskpool_priv_t *pPriv = __get_priv(self);
-    taskpool_job_t *new = malloc(sizeof(taskpool_job_t));
+    taskpool_job_t *new = mem_alloc(sizeof(taskpool_job_t));
     if (new == NULL)
     {
         errorf("mem_alloc err\n");
