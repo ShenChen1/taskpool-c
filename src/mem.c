@@ -30,15 +30,16 @@ typedef struct __obj
     char data[0];
 } mem_obj_t;
 
-#define MEM_ALIGN (8)
-#define MEM_MAX_BYTES (128)
+#define POW2(N) (1 << (N))
+#define MEM_LIST_NUM (8)
+#define MEM_MAX_BYTES (POW2(MEM_LIST_NUM))
 
 typedef struct
 {
     pthread_mutex_t lock;
 
     size_t num;
-    mem_obj_t *array[MEM_MAX_BYTES / MEM_ALIGN];
+    mem_obj_t *array[MEM_LIST_NUM];
 
     size_t align;
     size_t max_bytes;
@@ -46,14 +47,36 @@ typedef struct
 
 static mem_info_t s_mem_info = {
     .lock = PTHREAD_MUTEX_INITIALIZER,
-    .num = MEM_MAX_BYTES / MEM_ALIGN,
-    .align = MEM_ALIGN,
+    .num = MEM_LIST_NUM,
     .max_bytes = MEM_MAX_BYTES,
 };
 
-static size_t __freelist_index(size_t size, size_t align)
+static size_t __get_block_size(size_t size)
 {
-    return ((size + align - 1) / (size_t)align - 1);
+    size_t i = MEM_LIST_NUM;
+    do
+    {
+        if (size > POW2(i - 1))
+        {
+            break;
+        }
+    } while (--i);
+
+    return POW2(i);
+}
+
+static size_t __get_array_index(size_t size)
+{
+    size_t i = MEM_LIST_NUM;
+    do
+    {
+        if (size > POW2(i - 1))
+        {
+            break;
+        }
+    } while (--i);
+
+    return i;
 }
 
 void *mem_alloc(size_t size)
@@ -70,7 +93,7 @@ void *mem_alloc(size_t size)
 
     if (info->max_bytes < size)
     {
-        obj = (mem_obj_t *)malloc(sizeof(mem_obj_t) + ROUNDUP(size, info->align));
+        obj = (mem_obj_t *)malloc(sizeof(mem_obj_t) + size);
         if (obj == NULL)
         {
             errorf("malloc err\n");
@@ -81,8 +104,8 @@ void *mem_alloc(size_t size)
     }
 
     pthread_mutex_lock(&info->lock);
-    size = ROUNDUP(size, info->align);
-    index = __freelist_index(size, info->align);
+    size = __get_block_size(size);
+    index = __get_array_index(size);
     obj = info->array[index];
     if (obj == NULL)
     {
@@ -125,7 +148,7 @@ void mem_free(void *ptr)
     }
 
     pthread_mutex_lock(&info->lock);
-    index = __freelist_index(obj->header.size, info->align);
+    index = __get_array_index(obj->header.size);
     obj->header.next = info->array[index];
     info->array[index] = obj;
     pthread_mutex_unlock(&info->lock);
