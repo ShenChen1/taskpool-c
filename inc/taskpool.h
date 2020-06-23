@@ -29,9 +29,9 @@ typedef struct
 {
     taskpool_worker_type_e type;
 
-    unsigned long cpu_mask;
-    unsigned long sched_policy;
-    unsigned long sched_prio;
+    size_t cpu_mask;
+    int sched_policy;
+    int sched_prio;
 
     int (*func)(void *);
     void *arg;

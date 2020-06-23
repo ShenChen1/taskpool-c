@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
+#include <sys/sysinfo.h>
 #include "mem.h"
 #include "log.h"
 #include "que.h"
@@ -12,12 +14,12 @@
 
 typedef struct
 {
-    unsigned long magic;
+    size_t magic;
     pthread_mutex_t lock;
 
     handle_t workers;
 
-    unsigned long num_of_jobs;
+    size_t num_of_jobs;
     handle_t jobs_todo;
     handle_t jobs_done;
 
@@ -25,9 +27,9 @@ typedef struct
 
 } taskpool_priv_t;
 
-typedef struct taskpool_job_attr
+typedef struct
 {
-    unsigned long magic;
+    size_t magic;
     taskpool_job_attr_t attr;
 
     pthread_mutex_t lock;
@@ -36,9 +38,8 @@ typedef struct taskpool_job_attr
 
 } taskpool_job_t;
 
-typedef struct taskpool_worker_attr
+typedef struct
 {
-    unsigned long magic;
     taskpool_worker_attr_t attr;
     taskpool_priv_t *info;
     taskpool_job_t *job;
@@ -47,13 +48,26 @@ typedef struct taskpool_worker_attr
     int keep_alive;
 } taskpool_worker_t;
 
-static inline taskpool_priv_t *__get_priv(taskpool_t *obj)
+static inline taskpool_priv_t *__get_priv(handle_t handle)
 {
-    assert(obj);
-    assert(obj->priv);
-    assert(((taskpool_priv_t *)(obj->priv))->magic == TASKPOOL_MAGIC);
+    taskpool_priv_t *priv;
 
-    return obj->priv;
+    assert(handle);
+    priv = ((taskpool_t *)handle)->priv;
+    assert(priv);
+    assert(priv->magic == TASKPOOL_MAGIC);
+
+    return priv;
+}
+
+static inline taskpool_job_t *__get_job(handle_t handle)
+{
+    taskpool_job_t *job = handle;
+
+    assert(job);
+    assert(job->magic == TASKPOOL_MAGIC);
+
+    return job;
 }
 
 static void *__do_task(void *arg)
@@ -61,9 +75,7 @@ static void *__do_task(void *arg)
     int status;
     taskpool_worker_t *worker = arg;
 
-    // set pthread running on detach mode
     pthread_detach(worker->task);
-
     status = que_put(worker->info->workers, worker);
     assert(!status);
     tracef("worker %p start\n", worker);
@@ -77,7 +89,22 @@ static void *__do_task(void *arg)
             worker->keep_alive = 0;
             goto end;
         }
-
+#if 1
+        int i;
+        cpu_set_t cpuset;
+        size_t cpumask = worker->job->attr.cpu_mask;
+        CPU_ZERO(&cpuset);
+        for (i = 0; i < get_nprocs_conf(); i++)
+        {
+            CPU_SET((cpumask >> i) & 0x1, &cpuset);
+        }
+        status = pthread_setaffinity_np(worker->task, sizeof(cpuset), &cpuset);
+        assert(!status);
+        struct sched_param schedprm;
+        schedprm.sched_priority = worker->job->attr.sched_prio;
+        status = pthread_setschedparam(worker->task, worker->job->attr.sched_policy, &schedprm);
+        assert(!status);
+#endif
         pthread_mutex_lock(&worker->job->lock);
         worker->job->status = TASKPOOL_JOB_STATUS_DOING;
         pthread_mutex_unlock(&worker->job->lock);
@@ -164,7 +191,6 @@ static int taskpool_add_worker(taskpool_t *self, const taskpool_worker_attr_t *a
     }
 
     memset(new, 0, sizeof(taskpool_worker_t));
-    new->magic = TASKPOOL_MAGIC;
     attr = attr == NULL ? &attr_default : attr;
     memcpy(&new->attr, attr, sizeof(taskpool_worker_attr_t));
     new->job = NULL;
@@ -216,6 +242,9 @@ static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, h
 
     const taskpool_job_attr_t attr_default = {
         .type = TASKPOOL_WORKER_TYPE_THREAD,
+        .sched_policy = SCHED_RR,
+        .sched_prio = 0,
+        .cpu_mask = (size_t)(-1),
     };
 
     int status;
@@ -270,7 +299,7 @@ static int taskpool_del_job(struct taskpool *self, handle_t handle)
 
     int status;
     taskpool_priv_t *pPriv = __get_priv(self);
-    taskpool_job_t *job = handle;
+    taskpool_job_t *job = __get_job(handle);
     handle_t que = NULL;
 
     if (job == NULL)
@@ -318,9 +347,8 @@ static int taskpool_get_job_status(taskpool_t *self, handle_t handle, taskpool_j
 {
     tracef("%p\n", handle);
 
-    taskpool_job_t *job = handle;
-
-    if (job == NULL || status == NULL)
+    taskpool_job_t *job = __get_job(handle);
+    if (status == NULL)
     {
         errorf("paramter err\n");
         return -1;
@@ -338,13 +366,7 @@ static int taskpool_wait_job_done(taskpool_t *self, handle_t handle)
     tracef("%p\n", handle);
 
     taskpool_priv_t *pPriv = __get_priv(self);
-    taskpool_job_t *job = handle;
-
-    if (job == NULL)
-    {
-        errorf("paramter err\n");
-        return -1;
-    }
+    taskpool_job_t *job = __get_job(handle);
 
     pthread_mutex_lock(&job->lock);
     while (job->status != TASKPOOL_JOB_STATUS_DONE)
