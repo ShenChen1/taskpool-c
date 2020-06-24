@@ -4,7 +4,7 @@
 #include "taskpool.h"
 
 #define WORKERS (5)
-#define JOBS    (200)
+#define JOBS    (20)
 static void *j_handles[JOBS] = {};
 
 const char *status_str[] = {

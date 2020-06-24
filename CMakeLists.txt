@@ -11,6 +11,7 @@ add_library(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/src/log.c
     ${PROJECT_SOURCE_DIR}/src/mem.c
     ${PROJECT_SOURCE_DIR}/src/que.c
+    ${PROJECT_SOURCE_DIR}/src/task.c
     ${PROJECT_SOURCE_DIR}/src/taskpool.c
 )
 
