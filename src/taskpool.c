@@ -85,6 +85,8 @@ static void *__do_task(void *arg)
         if (status || worker->job == (handle_t)TASKPOOL_MAGIC)
         {
             worker->keep_alive = 0;
+            status = que_remove(worker->info->workers, worker);
+            assert(!status);
             goto end;
         }
 
@@ -113,9 +115,6 @@ static void *__do_task(void *arg)
     }
 
     tracef("worker %p end\n", worker);
-    status = que_remove(worker->info->workers, worker);
-    assert(!status);
-
     task_delete(worker->task);
     mem_free(worker);
     return NULL;
@@ -290,10 +289,8 @@ static int taskpool_del_job(struct taskpool *self, handle_t handle)
 {
     tracef("%p\n", handle);
 
-    int status;
     taskpool_priv_t *priv = __get_priv(self);
     taskpool_job_t *job = __get_job(handle);
-    handle_t que = NULL;
 
     if (job == NULL)
     {
@@ -302,12 +299,7 @@ static int taskpool_del_job(struct taskpool *self, handle_t handle)
     }
 
     pthread_mutex_lock(&job->lock);
-
-    if (job->status == TASKPOOL_JOB_STATUS_TODO)
-    {
-        que = priv->jobs_todo;
-    }
-
+    que_remove(priv->jobs_todo, job);
     if (job->status == TASKPOOL_JOB_STATUS_DOING)
     {
         while (job->status != TASKPOOL_JOB_STATUS_DONE)
@@ -315,15 +307,7 @@ static int taskpool_del_job(struct taskpool *self, handle_t handle)
             pthread_cond_wait(&priv->event, &job->lock);
         }
     }
-
-    if (job->status == TASKPOOL_JOB_STATUS_DONE)
-    {
-        que = priv->jobs_done;
-    }
-
-    status = que_remove(que, job);
-    assert(!status);
-
+    que_remove(priv->jobs_done, job);
     pthread_mutex_unlock(&job->lock);
 
     pthread_mutex_lock(&priv->lock);

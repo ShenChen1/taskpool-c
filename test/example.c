@@ -16,7 +16,7 @@ const char *status_str[] = {
 static int func(void *arg)
 {
     printf("job[%p]: start\n", j_handles[(unsigned long)arg]);
-    sleep((unsigned long)arg % 5);
+    sleep((unsigned long)arg % 3);
     printf("job[%p]: end\n", j_handles[(unsigned long)arg]);
     return 0;
 }
@@ -31,6 +31,7 @@ int main()
     taskpool_t *pObj = taskpool_init();
     assert(pObj);
 
+    printf("Add %d workers\n", WORKERS);
     for (i = 0; i < workers; i++)
     {
         taskpool_worker_attr_t attr = {};
@@ -39,6 +40,7 @@ int main()
         assert(ret == 0);
     }
 
+    printf("Add %d jobs\n", JOBS);
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_attr_t attr = {};
@@ -49,6 +51,7 @@ int main()
         assert(ret == 0);
     }
 
+    printf("Get %d jobs status\n", JOBS);
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_status_e status;
@@ -57,12 +60,14 @@ int main()
         printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
+    printf("Wait %d ~ %d jobs done\n", 0, JOBS / 2 - 1);
     for (i = 0; i < jobs / 2; i++)
     {
         ret = pObj->wait_job_done(pObj, j_handles[i]);
         assert(ret == 0);
     }
 
+    printf("Get %d jobs status\n", JOBS);
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_status_e status;
@@ -71,12 +76,14 @@ int main()
         printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
+    printf("Wait %d ~ %d jobs done\n", JOBS / 2, JOBS - 1);
     for (i = jobs / 2; i < jobs; i++)
     {
         ret = pObj->wait_job_done(pObj, j_handles[i]);
         assert(ret == 0);
     }
 
+    printf("Get %d jobs status\n", JOBS);
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_status_e status;
@@ -85,6 +92,7 @@ int main()
         printf("job[%p]: %s\n", j_handles[i], status_str[status]);
     }
 
+    printf("Add %d jobs\n", JOBS);
     for (i = 0; i < jobs; i++)
     {
         taskpool_job_attr_t attr = {};
@@ -95,12 +103,15 @@ int main()
         assert(ret == 0);
     }
 
+    printf("Delete all jobs\n");
     for (i = 0; i < jobs; i++)
     {
         ret = pObj->del_job(pObj, j_handles[i]);
         assert(ret == 0);
+        sleep(i%3);
     }
 
+    printf("Destroy taskpool\n");
     ret = pObj->deinit(pObj);
     assert(ret == 0);
 
