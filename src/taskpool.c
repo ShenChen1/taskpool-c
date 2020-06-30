@@ -355,8 +355,8 @@ static int taskpool_wait_all_jobs_done(struct taskpool *self)
     taskpool_priv_t *priv = __get_priv(self);
 
     pthread_mutex_lock(&priv->lock);
-    while (que_len(priv->jobs_todo) == 0 &&
-           priv->n_done_jobs == priv->n_total_jobs) {
+    while (!(que_len(priv->jobs_todo) == 0 &&
+           priv->n_done_jobs == priv->n_total_jobs)) {
         pthread_cond_wait(&priv->event, &priv->lock);
     }
     pthread_mutex_unlock(&priv->lock);

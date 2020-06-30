@@ -31,16 +31,13 @@ typedef struct __obj {
 
 #define POW2(N) (1 << (N))
 #define MEM_LIST_NUM (8)
-#define MEM_MAX_BYTES (POW2(MEM_LIST_NUM))
+#define MEM_MAX_BYTES (POW2(MEM_LIST_NUM-1))
 
 typedef struct {
     pthread_mutex_t lock;
-
+    size_t max_bytes;
     size_t num;
     mem_obj_t *array[MEM_LIST_NUM];
-
-    size_t align;
-    size_t max_bytes;
 } mem_info_t;
 
 static mem_info_t s_mem_info = {
