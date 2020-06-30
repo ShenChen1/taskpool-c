@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "mem.h"
 #include "log.h"
 #include "que.h"
@@ -147,6 +148,8 @@ static int taskpool_deinit(taskpool_t *self)
             status = self->del_worker(self, &attr);
             assert(!status);
         }
+        /* Wait for all wroker exiting */
+        sleep(1);
     }
 
     while (que_len(priv->jobs_keep)) {

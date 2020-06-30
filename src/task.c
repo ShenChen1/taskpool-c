@@ -47,6 +47,11 @@ static int __thread_create(task_attr_t *attr, void **handle)
 
 static int __thread_delete(void *handle)
 {
+    int status = pthread_equal(pthread_self(), *(pthread_t *)handle);
+    if (!status) {
+        pthread_cancel(*(pthread_t *)handle);
+    }
+
     mem_free(handle);
     return 0;
 }
