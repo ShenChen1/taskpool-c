@@ -1,16 +1,14 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-typedef enum
-{
+typedef enum {
     TASK_TYPE_THREAD = 0,
     TASK_TYPE_COROUTINE, //TODO
 
     TASK_TYPE_NONE,
 } task_type_e;
 
-typedef struct
-{
+typedef struct {
     task_type_e type;
 
     void *(*routine)(void *);

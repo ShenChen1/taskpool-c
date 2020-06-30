@@ -8,8 +8,7 @@
    the latter find their way in these sources as well.  */
 
 /* Basic type for the double-link list.  */
-typedef struct list_head
-{
+typedef struct list_head {
     struct list_head *next;
     struct list_head *prev;
 } list_t;
@@ -26,7 +25,7 @@ typedef struct list_head
 static inline int
 list_empty(const list_t *head)
 {
-	return head->next == head;
+    return head->next == head;
 }
 
 /* Add new element at the head of the list.  */
@@ -62,8 +61,7 @@ static inline void
 list_splice(list_t *add, list_t *head)
 {
     /* Do nothing if the list which gets added is empty.  */
-    if (add != add->next)
-    {
+    if (add != add->next) {
         add->next->prev = head;
         add->prev->next = head->next;
         head->next->prev = add->prev;

@@ -8,8 +8,7 @@
 #include "log.h"
 #include "task.h"
 
-typedef struct
-{
+typedef struct {
     int (*create)(task_attr_t *attr, void **handle);
     int (*delete)(void *handle);
     int (*set_affinity)(void *handle, size_t cpumask);
@@ -18,8 +17,7 @@ typedef struct
 
 } task_func_t;
 
-typedef struct
-{
+typedef struct {
     task_attr_t attr;
     task_func_t *func;
     void *handle;
@@ -29,15 +27,13 @@ static int __thread_create(task_attr_t *attr, void **handle)
 {
     int status;
     pthread_t *new = (pthread_t *)mem_alloc(sizeof(pthread_t));
-    if (new == NULL)
-    {
+    if (new == NULL) {
         errorf("mem_alloc err\n");
         return -1;
     }
 
     status = pthread_create(new, NULL, attr->routine, attr->arg);
-    if (status)
-    {
+    if (status) {
         errorf("pthread_create err\n");
         return -1;
     }
@@ -62,8 +58,7 @@ static int __thread_set_affinity(void *handle, size_t cpumask)
     pthread_t *thread = handle;
 
     CPU_ZERO(&cpuset);
-    for (i = 0; i < get_nprocs_conf(); i++)
-    {
+    for (i = 0; i < get_nprocs_conf(); i++) {
         CPU_SET((cpumask >> i) & 0x1, &cpuset);
     }
 
@@ -102,15 +97,13 @@ int task_create(task_attr_t *attr, void **handle)
     int status;
     task_priv_t *priv = NULL;
 
-    if (attr == NULL || handle == NULL)
-    {
+    if (attr == NULL || handle == NULL) {
         errorf("paramter err\n");
         return -1;
     }
 
     priv = (task_priv_t *)mem_alloc(sizeof(task_priv_t));
-    if (priv == NULL)
-    {
+    if (priv == NULL) {
         errorf("mem_alloc err\n");
         return -1;
     }
@@ -121,8 +114,7 @@ int task_create(task_attr_t *attr, void **handle)
 
     assert(priv->func->create);
     status = priv->func->create(&priv->attr, &priv->handle);
-    if (status)
-    {
+    if (status) {
         errorf("priv->func->create err\n");
         goto err;
     }
@@ -131,8 +123,7 @@ int task_create(task_attr_t *attr, void **handle)
     return 0;
 
 err:
-    if (priv)
-    {
+    if (priv) {
         mem_free(priv);
     }
 
@@ -144,16 +135,14 @@ int task_delete(void *handle)
     int status;
     task_priv_t *priv = handle;
 
-    if (handle == NULL)
-    {
+    if (handle == NULL) {
         errorf("paramter err\n");
         return -1;
     }
 
     assert(priv->func->delete);
     status = priv->func->delete(priv->handle);
-    if (status)
-    {
+    if (status) {
         errorf("priv->func->delete err\n");
         return -1;
     }
@@ -166,8 +155,7 @@ int task_set_affinity(void *handle, size_t cpumask)
 {
     task_priv_t *priv = handle;
 
-    if (handle == NULL)
-    {
+    if (handle == NULL) {
         errorf("paramter err\n");
         return -1;
     }
@@ -180,8 +168,7 @@ int task_set_schedpolicy(void *handle, int policy)
 {
     task_priv_t *priv = handle;
 
-    if (handle == NULL)
-    {
+    if (handle == NULL) {
         errorf("paramter err\n");
         return -1;
     }
@@ -194,8 +181,7 @@ int task_set_schedpriority(void *handle, int priority)
 {
     task_priv_t *priv = handle;
 
-    if (handle == NULL)
-    {
+    if (handle == NULL) {
         errorf("paramter err\n");
         return -1;
     }

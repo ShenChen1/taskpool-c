@@ -6,8 +6,7 @@ static loglevel_t s_level = LOG_LV_DEBUG;
 
 int log_setlevel(loglevel_t level)
 {
-    if (level >= LOG_LV_MAX)
-    {
+    if (level >= LOG_LV_MAX) {
         return -1;
     }
 
@@ -20,8 +19,7 @@ int log_printf(loglevel_t level, const char *fmt, ...)
     int n;
     va_list ap;
 
-    if (level > s_level)
-    {
+    if (level > s_level) {
         return 0;
     }
 

@@ -12,8 +12,7 @@
 #define LOG_CLR_YELLOW "\033[1;33m"
 #define LOG_CLR_CYAN "\033[0;36m"
 
-typedef enum
-{
+typedef enum {
     LOG_LV_FATAL,
     LOG_LV_ERROR,
     LOG_LV_WARN,
