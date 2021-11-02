@@ -1,6 +1,7 @@
-#include <stdio.h>
-#include <stdarg.h>
 #include "log.h"
+
+#include <stdarg.h>
+#include <stdio.h>
 
 static loglevel_t s_level = LOG_LV_INFO;
 

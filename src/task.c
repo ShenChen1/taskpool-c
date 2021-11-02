@@ -1,12 +1,14 @@
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <string.h>
+#include "task.h"
+
 #include <assert.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/sysinfo.h>
-#include "mem.h"
+
 #include "log.h"
-#include "task.h"
+#include "mem.h"
 
 typedef struct {
     int (*create)(task_attr_t *attr, void **handle);
@@ -14,7 +16,6 @@ typedef struct {
     int (*set_affinity)(void *handle, size_t cpumask);
     int (*set_schedpolicy)(void *handle, int policy);
     int (*set_schedpriority)(void *handle, int priority);
-
 } task_func_t;
 
 typedef struct {

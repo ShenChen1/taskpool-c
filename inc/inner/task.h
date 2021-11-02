@@ -1,6 +1,8 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#include <stddef.h>
+
 typedef enum {
     TASK_TYPE_THREAD = 0,
     TASK_TYPE_COROUTINE, //TODO

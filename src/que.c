@@ -1,11 +1,13 @@
+#include "que.h"
+
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
+
 #include "list.h"
-#include "mem.h"
-#include "que.h"
 #include "log.h"
+#include "mem.h"
 
 typedef struct {
     list_t head;

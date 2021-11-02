@@ -1,14 +1,16 @@
+#include "taskpool.h"
+
+#include <assert.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <pthread.h>
 #include <unistd.h>
-#include "mem.h"
+
 #include "log.h"
+#include "mem.h"
 #include "que.h"
 #include "task.h"
-#include "taskpool.h"
 
 #define TASKPOOL_MAGIC (0xdeadbeef)
 typedef void *handle_t;
@@ -16,36 +18,28 @@ typedef void *handle_t;
 typedef struct {
     size_t magic;
     pthread_mutex_t lock;
-
-    handle_t workers[TASKPOOL_WORKER_TYPE_NONE];
-
+    pthread_cond_t event;
     size_t n_total_jobs;
     size_t n_done_jobs;
     handle_t jobs_todo;
     handle_t jobs_keep;
-
-    pthread_cond_t event;
-
+    handle_t workers[TASKPOOL_WORKER_TYPE_NONE];
 } taskpool_priv_t;
 
 typedef struct {
     size_t magic;
     taskpool_job_attr_t attr;
     taskpool_job_status_t status;
-
     pthread_mutex_t lock;
     int auto_free;
-
 } taskpool_job_t;
 
 typedef struct {
     taskpool_worker_attr_t attr;
     taskpool_priv_t *info;
     taskpool_job_t *job;
-
     handle_t task;
     int keep_alive;
-
 } taskpool_worker_t;
 
 static inline taskpool_priv_t *__get_priv(handle_t handle)
@@ -93,9 +87,9 @@ static void *__do_task(void *arg)
         worker->job->status.status = TASKPOOL_JOB_STATUS_DOING;
         pthread_mutex_unlock(&worker->job->lock);
 
-        status |= task_set_affinity(worker->task, worker->job->attr.cpu_mask);
-        status |= task_set_schedpolicy(worker->task, worker->job->attr.sched_policy);
-        status |= task_set_schedpriority(worker->task, worker->job->attr.sched_priority);
+        status |= task_set_affinity(worker->task, worker->job->attr.sys_cpu_mask);
+        status |= task_set_schedpolicy(worker->task, worker->job->attr.sys_sched_policy);
+        status |= task_set_schedpriority(worker->task, worker->job->attr.sys_sched_priority);
         assert(!status);
 
         tracef("worker %p is doing job %p ...\n", worker, worker->job);
@@ -117,7 +111,7 @@ static void *__do_task(void *arg)
         pthread_mutex_lock(&worker->info->lock);
         worker->info->n_done_jobs++;
         pthread_mutex_unlock(&worker->info->lock);
-end:
+    end:
         pthread_cond_broadcast(&worker->info->event);
     }
 
@@ -247,9 +241,9 @@ static int taskpool_add_job(taskpool_t *self, const taskpool_job_attr_t *attr, h
 
     const taskpool_job_attr_t __attr = {
         .type = TASKPOOL_WORKER_TYPE_THREAD,
-        .sched_policy = SCHED_RR,
-        .sched_priority = 0,
-        .cpu_mask = (size_t)(-1),
+        .sys_sched_policy = SCHED_RR,
+        .sys_sched_priority = 0,
+        .sys_cpu_mask = (size_t)(-1),
     };
 
     int status;
@@ -359,7 +353,7 @@ static int taskpool_wait_all_jobs_done(struct taskpool *self)
 
     pthread_mutex_lock(&priv->lock);
     while (!(que_len(priv->jobs_todo) == 0 &&
-           priv->n_done_jobs == priv->n_total_jobs)) {
+             priv->n_done_jobs == priv->n_total_jobs)) {
         pthread_cond_wait(&priv->event, &priv->lock);
     }
     pthread_mutex_unlock(&priv->lock);

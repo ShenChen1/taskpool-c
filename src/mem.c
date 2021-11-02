@@ -1,8 +1,10 @@
+#include "mem.h"
+
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+
 #include "log.h"
-#include "mem.h"
 
 #define ENTRY(ptr, type, member) \
     ((type *)((char *)(ptr) - (size_t)(&((type *)0)->member)))
@@ -31,7 +33,7 @@ typedef struct __obj {
 
 #define POW2(N) (1 << (N))
 #define MEM_LIST_NUM (8)
-#define MEM_MAX_BYTES (POW2(MEM_LIST_NUM-1))
+#define MEM_MAX_BYTES (POW2(MEM_LIST_NUM - 1))
 
 typedef struct {
     pthread_mutex_t lock;

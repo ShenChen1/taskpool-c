@@ -1,6 +1,8 @@
 #ifndef __TASKPOOL_H__
 #define __TASKPOOL_H__
 
+#include <stddef.h>
+
 typedef void *job_t;
 
 typedef enum {
@@ -23,12 +25,12 @@ typedef struct {
 typedef struct {
     taskpool_worker_type_e type;
 
-    size_t cpu_mask;        /* this job can run on which cpus */
-    int sched_policy;       /* the scheduling policy for this job */
-    int sched_priority;     /* the scheduling priority for this job */
+    size_t sys_cpu_mask;        /* this job can run on which cpus */
+    int sys_sched_policy;       /* the scheduling policy for this job */
+    int sys_sched_priority;     /* the scheduling priority for this job */
 
-    int (*func)(void *);    /* pointer to the function to do */
-    void *arg;              /* pointer to an argument */
+    int (*func)(void *);        /* pointer to the function to do */
+    void *arg;                  /* pointer to an argument */
 } taskpool_job_attr_t;
 
 typedef struct {
